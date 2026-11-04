@@ -1,0 +1,154 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bubble ICU</title>
+<style>
+body{margin:0;font:15px Arial;background:#f3f6fb;color:#192b42}
+header{background:#17345c;color:white;padding:18px 25px}
+nav,.bubbles{display:flex;gap:7px;flex-wrap:wrap;padding:12px}
+button{cursor:pointer;border:1px solid #d4dfeb;background:white;padding:10px 14px;border-radius:10px}
+button.active{background:#dceaff;border-color:#4787da}
+main{padding:14px;max-width:1200px;margin:auto}
+.card{background:white;border-radius:14px;padding:18px;margin-bottom:13px;border:1px solid #e0e6ef}
+.bubbles button{border-radius:30px}
+.red{color:#b91c1c}.amber{color:#bd6512}.green{color:#0b8662}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+textarea{box-sizing:border-box;width:100%;min-height:150px;padding:12px;border:1px solid #ccd6e3;border-radius:9px}
+canvas{width:100%;height:170px;border:1px solid #ccd6e3;border-radius:9px;touch-action:none}
+small{color:#66768a}
+</style>
+</head>
+<body>
+<header>
+<h2>Bubble ICU</h2>
+<div>Alex Morgan · Bed 04 · Synthetic demonstration patient</div>
+</header>
+<main>
+<div class="bubbles" id="bubbles"></div>
+<div class="card" id="bubbleDetail" hidden></div>
+<nav id="tabs"></nav>
+<section class="card" id="content"></section>
+<small>Synthetic data only. Not connected to a clinical system.</small>
+</main>
+<script>
+const tabs=["Overview","Notes","Pathology","Microbiology","Medications",
+"Nursing","Ventilator","Fluid Balance","Actions","Activity Log",
+"Imaging","Toxicology","Protocols"];
+const bubbles={
+"Alerts":"Potassium previously 3.1 mmol/L. Verify replacement and repeat result.",
+"Summary":"Fictional ICU admission with pneumonia and septic shock. Clinical review required.",
+"Microbiology":"Blood culture: E. coli. Review original report and susceptibilities.",
+"Actions":"Repeat electrolytes; review antimicrobial therapy; physiotherapy assessment.",
+"AI":"AI suggestions will require source verification and clinician approval."
+};
+let selected="Overview",page=1,mode="Type";
+const content=document.querySelector("#content");
+const tabsEl=document.querySelector("#tabs");
+const bubblesEl=document.querySelector("#bubbles");
+tabs.forEach(t=>{
+ const b=document.createElement("button");
+ b.textContent=t;
+ b.onclick=()=>{selected=t;render()};
+ tabsEl.append(b);
+});
+Object.entries(bubbles).forEach(([name,info])=>{
+ const b=document.createElement("button");
+ b.textContent=name;
+ if(name==="Alerts")b.className="red";
+ b.onclick=()=>{
+  const d=document.querySelector("#bubbleDetail");
+  if(!d.hidden&&d.dataset.name===name){d.hidden=true;return}
+  d.dataset.name=name;d.hidden=false;
+  d.textContent=name+" — "+info;
+ };
+ bubblesEl.append(b);
+});
+function trend(label,values,unit){
+ const max=Math.max(...values),min=Math.min(...values);
+ const pts=values.map((v,i)=>
+ `${10+i*32},${52-((v-min)/(max-min||1))*40}`).join(" ");
+ return `<div class="card"><b>${label}</b><p>${values.at(-1)} ${unit}</p>
+ <svg viewBox="0 0 220 65" width="100%">
+ <polyline points="${pts}" fill="none" stroke="#2684d9" stroke-width="3"/>
+ </svg></div>`;
+}
+function render(){
+ [...tabsEl.children].forEach(b=>b.classList.toggle("active",b.textContent===selected));
+ let html="";
+ if(selected==="Overview"){
+ html='<h3>Key clinical trends</h3><div class="grid">'+
+ trend("Heart rate",[88,94,101,108,96,110],"bpm")+
+ trend("Haemoglobin",[112,108,101,94,87],"g/L")+
+ trend("Potassium",[4.1,3.8,3.1,3.5,3.7],"mmol/L")+
+ trend("Lactate",[4.5,3.8,2.9,2.1,1.7],"mmol/L")+'</div>';
+ }
+ else if(selected==="Notes"){
+ html=`<h3>Clinical notebook — Page ${page}</h3>
+ <button onclick="mode='Type';render()">Type</button>
+ <button onclick="mode='Write';render()">Write</button>
+ <button onclick="mode='Voice';render()">Voice</button>
+ <div id="entry"></div>
+ <p><button onclick="page=Math.max(1,page-1);render()">← Previous</button>
+ <button onclick="page++;render()">Next →</button></p>`;
+ }
+ else if(selected==="Pathology"){
+ html=`<h3>Pathology</h3>
+ <h4>ABG</h4><p>FiO₂ 0.40 · pH 7.31 · PaCO₂ 48 · PaO₂ 78 · HCO₃ 23 · Lactate 2.8</p>
+ <h4>CBE</h4><p>Hb 87 · WCC 15.2 · Neutrophils 12.8 · Platelets 132</p>
+ <p>Additional indices available on expansion in future versions.</p>`;
+ }
+ else if(selected==="Nursing"){
+ html=`<h3>Nursing documentation</h3>
+ <div class="grid">
+ <div class="card">Observations<br>HR 108 · BP 102/65 · SpO₂ 96%</div>
+ <div class="card">Patient care<br>Turn and skin review documented</div>
+ <div class="card">Lines and devices<br>Peripheral IV and urinary catheter</div>
+ <div class="card">Nursing notes<br>Shift review pending</div>
+ </div>`;
+ }
+ else if(selected==="Ventilator"){
+ html="<h3>Ventilator</h3>Mode: PSV · FiO₂ 0.40 · PEEP 5 cmH₂O";
+ }
+ else if(selected==="Fluid Balance"){
+ html="<h3>Input / Output</h3>Input: 1800 mL · Output: 1350 mL · Net: +450 mL";
+ }
+ else if(selected==="Microbiology"){
+ html="<h3>Microbiology</h3>Blood culture: E. coli (fictional). Review susceptibility report.";
+ }
+ else if(selected==="Actions"){
+ html="<h3>Outstanding actions</h3>Verify electrolyte replacement, repeat UEC and review antimicrobial plan.";
+ }
+ else if(selected==="Activity Log"){
+ html="<h3>Activity log</h3>08:00 Bloods resulted<br>10:20 Potassium documented as administered<br>14:00 Repeat UEC";
+ }
+ else if(selected==="Protocols"){
+ html=`<h3>Protocol assistant</h3>
+ <input style="width:90%;padding:12px" placeholder="Ask about a procedure, medication or guideline">
+ <p>Approved local PPG documents are not connected. No local dosing advice can be verified.</p>`;
+ }
+ else html=`<h3>${selected}</h3><p>Module ready for development.</p>`;
+ content.innerHTML=html;
+ if(selected==="Notes"){
+ const area=document.querySelector("#entry");
+ if(mode==="Type")area.innerHTML="<p><textarea placeholder='Enter clinical note...'></textarea></p>";
+ if(mode==="Voice")area.textContent="Voice transcription will be added after microphone integration.";
+ if(mode==="Write"){
+ area.innerHTML="<p><canvas id='pad'></canvas></p><button id='clear'>Clear</button>";
+ const c=document.querySelector("#pad"),ctx=c.getContext("2d");
+ c.width=c.clientWidth*devicePixelRatio;c.height=170*devicePixelRatio;
+ ctx.scale(devicePixelRatio,devicePixelRatio);ctx.lineWidth=2.2;
+ let drawing=false;
+ c.onpointerdown=e=>{drawing=true;c.setPointerCapture(e.pointerId);ctx.beginPath();ctx.moveTo(e.offsetX,e.offsetY)};
+ c.onpointermove=e=>{if(drawing){ctx.lineTo(e.offsetX,e.offsetY);ctx.stroke()}};
+ c.onpointerup=()=>drawing=false;
+ document.querySelector("#clear").onclick=()=>ctx.clearRect(0,0,c.width,c.height);
+ }
+ }
+}
+render();
+</script>
+</body>
+</html>
