@@ -1,0 +1,10 @@
+{
+  "name": "bubble-icu",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
